@@ -1,0 +1,113 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+[RequireComponent(typeof(CharacterController))]
+public abstract class PlayerBaseMovement : MonoBehaviour
+{
+    protected CharacterController controller;
+
+    [SerializeField] protected float moveSpeed = 5;
+    [SerializeField] protected float jumpForce = 10;
+    [SerializeField] protected float velocityY = 0;
+
+    [SerializeField] protected float gravity = -9.81f;
+
+    //[SerializeField] protected float gravityMultiplier = 2;
+    [SerializeField] protected float mass = 1f;
+    [SerializeField] protected float damping = 5;
+
+    private protected Vector3 moveInputVector = Vector3.zero;
+    private protected Vector3 currentImpact = Vector3.zero;
+    private protected bool isJumpButtonPressed = false;
+
+    protected virtual void GetInput()
+    {
+    }
+
+    protected virtual void Movement()
+    {
+    }
+
+    protected virtual void Jump()
+    {
+    }
+
+    protected virtual void DefaultUpdate()
+    {
+    }
+
+    protected void AssignCharacterController()
+    {
+        controller = GetComponent<CharacterController>();
+
+        if (controller == null)
+        {
+            Debug.Log("Missing: Character Controller reference");
+        }
+    }
+
+    protected virtual void DefaultGetInput()
+    {
+        moveInputVector = new Vector3(Input.GetAxisRaw(Axis.HORIZONTAL), 0, Input.GetAxisRaw(Axis.VERTICAL));
+
+        isJumpButtonPressed = Input.GetKeyDown(KeyCode.Space);
+    }
+
+    protected virtual void DefaultMovement()
+    {
+        moveInputVector = transform.TransformDirection(moveInputVector);
+
+        if (controller.isGrounded && velocityY < 0f)
+        {
+            velocityY = 0f;
+            //ResetImpactY();
+        }
+
+        velocityY += gravity * Time.deltaTime;
+
+        /*if (velocityY < gravity * gravityMultiplier)
+        {
+            velocityY = gravity * gravityMultiplier;
+        }*/
+
+        Vector3 velocity = (moveInputVector * moveSpeed) + (Vector3.up * velocityY);
+
+        if (currentImpact.magnitude > 0.2f)
+        {
+            velocity += currentImpact;
+        }
+
+        controller.Move(velocity * Time.deltaTime);
+
+        currentImpact = Vector3.Lerp(currentImpact, Vector3.zero, damping * Time.deltaTime);
+    }
+
+    protected virtual void DefaultJump()
+    {
+        if (isJumpButtonPressed)
+        {
+            if (controller.isGrounded)
+            {
+                AddForce(Vector3.up, jumpForce);
+                //velocityY = jumpForce;
+            }
+            
+        }
+    }
+
+    public void AddForce(Vector3 direction, float magnitude)
+    {
+        currentImpact += direction.normalized * magnitude / mass;
+    }
+
+    protected void ResetImpact()
+    {
+        currentImpact = Vector3.zero;
+    }
+
+    protected void ResetImpactY()
+    {
+        currentImpact.y = 0f;
+    }
+}
